@@ -1,0 +1,42 @@
+services:
+  proxygate:
+    # ==========================================
+    #  默认从 GitHub Container Registry 拉取
+    #  Fork 后改为: ghcr.io/你的用户名/proxygate
+    #  GitHub Actions 推送代码后自动构建
+    # ==========================================
+    image: ${PROXYGATE_IMAGE:-ghcr.io/linfanmz/proxygate:latest}
+    pull_policy: ${PROXYGATE_PULL_POLICY:-always}
+    #
+    # 本地构建: docker compose -f docker-compose.yml -f docker-compose.build.yml build
+    # image: ${PROXYGATE_IMAGE:-proxygate:latest}
+    # pull_policy: ${PROXYGATE_PULL_POLICY:-missing}
+    container_name: ${CONTAINER_NAME:-proxygate}
+    restart: unless-stopped
+    ports:
+      - "${STABLE_PORT:-7776}:7776"          # HTTP 最低延迟
+      - "${RANDOM_PORT:-7777}:7777"          # HTTP 随机轮换
+      - "${WEBUI_PORT:-7778}:7778"           # WebUI（有登录认证）
+      - "${SOCKS5_RANDOM_PORT:-7779}:7779"   # SOCKS5 随机轮换
+      - "${SOCKS5_STABLE_PORT:-7780}:7780"   # SOCKS5 最低延迟
+    volumes:
+      - proxygate-data:/app/data
+    environment:
+      - TZ=${TZ:-Asia/Shanghai}
+      - DATA_DIR=/app/data
+      - WEBUI_PASSWORD=${WEBUI_PASSWORD:-proxygate}
+      - PROXY_AUTH_ENABLED=${PROXY_AUTH_ENABLED:-false}
+      - PROXY_AUTH_USERNAME=${PROXY_AUTH_USERNAME:-proxy}
+      - PROXY_AUTH_PASSWORD=${PROXY_AUTH_PASSWORD}
+      - BLOCKED_COUNTRIES=${BLOCKED_COUNTRIES:-CN}
+      - ALLOWED_COUNTRIES=${ALLOWED_COUNTRIES}
+      - CUSTOM_PROXY_MODE=${CUSTOM_PROXY_MODE:-mixed}
+      - SINGBOX_PATH=sing-box
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:7778/ || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  proxygate-data:
